@@ -2,11 +2,15 @@ package com.tonydantona.nomad;
 
 import android.location.Location;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.TextView;
 
 import com.google.android.gms.common.ConnectionResult;
+
+import org.xmlpull.v1.XmlPullParserException;
 
 public class MainActivity extends AppCompatActivity implements LocationBeacon.ILocationServices {
 
@@ -24,6 +28,15 @@ public class MainActivity extends AppCompatActivity implements LocationBeacon.IL
         }
     };
 
+
+    String message =   "<?xml version='1.0' encoding='utf-8'?>" +
+            "<Message>" +
+            "<Consignee>KATHLEEN MCMULLEN</Consignee>" +
+            "<NapLat>39.64993</NapLat>" +
+            "<NapLong>-76.703443</NapLong>" +
+            "<HIN>19206</HIN>" +
+            "</Message>";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -34,7 +47,21 @@ public class MainActivity extends AppCompatActivity implements LocationBeacon.IL
         mLatitudeText = (TextView) findViewById(R.id.latView);
         mLongitudeText = (TextView) findViewById(R.id.lonView);
 
+        XMLDestinationParser destinationParser = new XMLDestinationParser();
+        try {
+            destinationParser.parseDestination(message);
+        } catch (XmlPullParserException e) {
+            e.printStackTrace();
+        }
+
         initializeLocationBeacon();
+
+        if (savedInstanceState == null) {
+            FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+            BluetoothServiceFragment fragment = new BluetoothServiceFragment();
+            transaction.replace(R.id.activity_main, fragment);
+            transaction.commit();
+        }
     }
 
     private void initializeLocationBeacon() {

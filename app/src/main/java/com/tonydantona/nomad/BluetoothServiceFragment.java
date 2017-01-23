@@ -110,27 +110,9 @@ public class BluetoothServiceFragment extends Fragment {
         super.onCreateOptionsMenu(menu,inflater);
     }
 
+    // tapping the bluetooth symbol at the top right gets you here
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-//        switch (item.getItemId()) {
-//            case R.id.secure_connect_scan: {
-//                // Launch the DeviceListActivity to see devices and do scan
-//                Intent serverIntent = new Intent(getActivity(), DeviceListActivity.class);
-//                startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE_SECURE);
-//                return true;
-//            }
-//            case R.id.insecure_connect_scan: {
-//                // Launch the DeviceListActivity to see devices and do scan
-//                Intent serverIntent = new Intent(getActivity(), DeviceListActivity.class);
-//                startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE_INSECURE);
-//                return true;
-//            }
-//            case R.id.discoverable: {
-//                // Ensure this device is discoverable by others
-//                ensureDiscoverable();
-//                return true;
-//            }
-//        }
         return false;
     }
 
@@ -166,19 +148,20 @@ public class BluetoothServiceFragment extends Fragment {
                     }
                     break;
                 case Immutables.MESSAGE_WRITE:
-                    byte[] writeBuf = (byte[]) msg.obj;
-                    // construct a string from the buffer
-                    String writeMessage = new String(writeBuf);
-                    mMessageArrayAdapter.add("Me:  " + writeMessage);
+                    if (null != activity) {
+                        Toast.makeText(activity, "Error, this app does not write messages", Toast.LENGTH_LONG).show();
+                    }
                     break;
                 case Immutables.MESSAGE_READ:
+                    // reads the incoming message
                     byte[] readBuf = (byte[]) msg.obj;
                     // construct a string from the valid bytes in the buffer
                     String readMessage = new String(readBuf, 0, msg.arg1);
-                    mMessageArrayAdapter.add(mConnectedDeviceName + ":  " + readMessage);
+                    Toast.makeText(activity, "New destination received", Toast.LENGTH_SHORT).show();
+                    //mMessageArrayAdapter.add(mConnectedDeviceName + ":  " + readMessage);
                     break;
                 case Immutables.MESSAGE_DEVICE_NAME:
-                    // save the connected device's name
+                    // saves the connected device's name and displays it upon connection
                     mConnectedDeviceName = msg.getData().getString(Immutables.DEVICE_NAME);
                     if (null != activity) {
                         Toast.makeText(activity, "Connected to " + mConnectedDeviceName, Toast.LENGTH_SHORT).show();

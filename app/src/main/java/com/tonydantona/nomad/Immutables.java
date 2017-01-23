@@ -17,7 +17,7 @@ public class Immutables {
     public static final int STATE_CONNECTED = 3;  // now connected to a remote device
 
 
-    // Message types sent from the BluetoothChatService Handler
+    // Message types sent from the BluetoothService Handler
     public static final int MESSAGE_STATE_CHANGE = 1;
     public static final int MESSAGE_READ = 2;
     public static final int MESSAGE_WRITE = 3;
