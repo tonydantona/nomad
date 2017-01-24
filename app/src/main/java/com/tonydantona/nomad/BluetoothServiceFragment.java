@@ -3,6 +3,7 @@ package com.tonydantona.nomad;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
@@ -20,6 +21,10 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.Toast;
+
+import com.google.android.gms.common.ConnectionResult;
+
+import org.xmlpull.v1.XmlPullParserException;
 
 
 public class BluetoothServiceFragment extends Fragment {
@@ -40,6 +45,15 @@ public class BluetoothServiceFragment extends Fragment {
     private ListView mMessageView;
 
     private String mConnectedDeviceName;
+
+    private Context mContext;
+
+    private IDestinationServices mDestinationListener;
+
+    public BluetoothServiceFragment(Context context) {
+        mContext = context;
+        mDestinationListener = (IDestinationServices) mContext;
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -153,11 +167,19 @@ public class BluetoothServiceFragment extends Fragment {
                     }
                     break;
                 case Immutables.MESSAGE_READ:
+                    Toast.makeText(activity, "New destination received", Toast.LENGTH_SHORT).show();
                     // reads the incoming message
                     byte[] readBuf = (byte[]) msg.obj;
                     // construct a string from the valid bytes in the buffer
                     String readMessage = new String(readBuf, 0, msg.arg1);
-                    Toast.makeText(activity, "New destination received", Toast.LENGTH_SHORT).show();
+                    XMLDestinationParser destinationParser = new XMLDestinationParser();
+                    Destination dest = null;
+                    try {
+                        dest = destinationParser.parseDestination(readMessage);
+                    } catch (XmlPullParserException e) {
+                        e.printStackTrace();
+                    }
+                    mDestinationListener.bluetoothServiceOnDestinationChange(dest);
                     //mMessageArrayAdapter.add(mConnectedDeviceName + ":  " + readMessage);
                     break;
                 case Immutables.MESSAGE_DEVICE_NAME:
@@ -200,6 +222,10 @@ public class BluetoothServiceFragment extends Fragment {
             return;
         }
         actionBar.setSubtitle(subTitleStatus);
+    }
+
+    public interface IDestinationServices {
+        void bluetoothServiceOnDestinationChange(Destination location);
     }
 
 }
