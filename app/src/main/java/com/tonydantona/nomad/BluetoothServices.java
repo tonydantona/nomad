@@ -7,7 +7,11 @@ import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v4.app.FragmentActivity;
 import android.util.Log;
+import android.widget.Toast;
+
+import org.xmlpull.v1.XmlPullParserException;
 
 /**
  * Created by rti1ajd on 12/12/2016.
@@ -95,5 +99,7 @@ public class BluetoothServices {
     public synchronized int getState() {
         return mState;
     }
+
+
 
 }

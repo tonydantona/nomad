@@ -4,19 +4,23 @@ import android.location.Location;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.Message;
+import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 
 import org.xmlpull.v1.XmlPullParserException;
 
-public class MainActivity extends AppCompatActivity implements LocationBeacon.ILocationServices {
+public class MainActivity extends AppCompatActivity implements LocationBeacon.ILocationServices, BluetoothServiceFragment.IDestinationServices {
 
     LocationBeacon mLocationBeacon;
 
     private Location mCurrentLocation;
+    private Destination mDestination;
 
     private TextView mLatitudeText;
     private TextView mLongitudeText;
@@ -58,7 +62,7 @@ public class MainActivity extends AppCompatActivity implements LocationBeacon.IL
 
         if (savedInstanceState == null) {
             FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-            BluetoothServiceFragment fragment = new BluetoothServiceFragment();
+            BluetoothServiceFragment fragment = new BluetoothServiceFragment(this);
             transaction.replace(R.id.activity_main, fragment);
             transaction.commit();
         }
@@ -104,5 +108,11 @@ public class MainActivity extends AppCompatActivity implements LocationBeacon.IL
         super.onStop();
         mHandler = null;
         mLocationBeacon.onStopFromCaller();
+    }
+
+    @Override
+    public void bluetoothServiceOnDestinationChange(Destination destination) {
+        mDestination = destination;
+        Toast.makeText(this, "lat: " + mDestination.getNapLat() + " lon: " + mDestination.getNapLon(), Toast.LENGTH_LONG).show();
     }
 }
