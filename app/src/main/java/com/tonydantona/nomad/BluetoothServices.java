@@ -7,7 +7,6 @@ import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -22,19 +21,18 @@ public class BluetoothServices {
     private static final String TAG = "BluetoothServices";
 
     private final BluetoothAdapter mBluetoothAdapter;
-
-    private final Handler mHandler;
     private final Context mContext;
-
+    private IDestinationServices mDestinationListener;
     private int mState;
+    private String mConnectedDeviceName;
 
     private AcceptThread mAcceptThread;
     private ConnectedThread mConnectedThread;
 
-    public BluetoothServices(Context context, Handler handler) {
+    public BluetoothServices(Context context) {
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         mContext = context;
-        mHandler = handler;
+        mDestinationListener = (IDestinationServices) context;
         mState = Immutables.STATE_NONE;
     }
 
@@ -76,30 +74,81 @@ public class BluetoothServices {
         }
 
         // Start the thread to manage the connection and perform transmissions
-        mConnectedThread = new ConnectedThread(socket, this, mHandler);
+        mConnectedThread = new ConnectedThread(socket, this, mDestHandler);
         mConnectedThread.start();
 
         // Send the name of the connected device back to the UI Activity
-        Message msg = mHandler.obtainMessage(Immutables.MESSAGE_DEVICE_NAME);
+        Message msg = mDestHandler.obtainMessage(Immutables.MESSAGE_DEVICE_NAME);
         Bundle bundle = new Bundle();
         bundle.putString(Immutables.DEVICE_NAME, device.getName());
         msg.setData(bundle);
-        mHandler.sendMessage(msg);
+        mDestHandler.sendMessage(msg);
 
         setState(Immutables.STATE_CONNECTED);
     }
+
+    private final Handler mDestHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case Immutables.MESSAGE_STATE_CHANGE:
+                    switch (msg.arg1) {
+                        case Immutables.STATE_CONNECTED:
+                            Toast.makeText(mContext, mContext.getString(R.string.title_connected_to) + " " + mConnectedDeviceName, Toast.LENGTH_LONG).show();
+                            break;
+                        case Immutables.STATE_CONNECTING:
+                            Toast.makeText(mContext, mContext.getString(R.string.title_connecting) +  mConnectedDeviceName, Toast.LENGTH_LONG).show();
+                            break;
+                        case Immutables.STATE_LISTEN:
+                        case Immutables.STATE_NONE:
+                            break;
+                    }
+                    break;
+                case Immutables.MESSAGE_WRITE:
+                    if (null != mContext) {
+                        Toast.makeText(mContext, "Error, this app does not write messages", Toast.LENGTH_LONG).show();
+                    }
+                    break;
+                case Immutables.MESSAGE_READ:
+                    Toast.makeText(mContext, "New destination received", Toast.LENGTH_SHORT).show();
+                    // reads the incoming message
+                    byte[] readBuf = (byte[]) msg.obj;
+                    // construct a string from the valid bytes in the buffer
+                    String readMessage = new String(readBuf, 0, msg.arg1);
+                    XMLDestinationParser destinationParser = new XMLDestinationParser();
+                    Destination dest = null;
+                    try {
+                        dest = destinationParser.parseDestination(readMessage);
+                    } catch (XmlPullParserException e) {
+                        e.printStackTrace();
+                    }
+                    mDestinationListener.bluetoothServiceOnDestinationChange(dest);
+                    break;
+                case Immutables.MESSAGE_DEVICE_NAME:
+                    // saves the connected device's name and displays it upon connection
+                    mConnectedDeviceName = msg.getData().getString(Immutables.DEVICE_NAME);
+                    break;
+                case Immutables.MESSAGE_TOAST:
+                    if (null != mContext) {
+                        Toast.makeText(mContext, msg.getData().getString(Immutables.TOAST), Toast.LENGTH_SHORT).show();
+                    }
+                    break;
+            }
+        }
+    };
 
     public synchronized void setState(int state) {
         Log.d(TAG, "setState() " + mState + "->" + state);
         mState = state;
 
-        mHandler.obtainMessage(Immutables.MESSAGE_STATE_CHANGE, state, -1).sendToTarget();
+        mDestHandler.obtainMessage(Immutables.MESSAGE_STATE_CHANGE, state, -1).sendToTarget();
     }
 
     public synchronized int getState() {
         return mState;
     }
 
-
-
+    public interface IDestinationServices {
+        void bluetoothServiceOnDestinationChange(Destination location);
+    }
 }

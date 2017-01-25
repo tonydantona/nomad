@@ -31,7 +31,9 @@ public class AcceptThread extends Thread {
             mBluetoothAdapter = bluetoothAdapter;
             // MY_UUID is the app's UUID string, also used by the client code
             tmp = mBluetoothAdapter.listenUsingRfcommWithServiceRecord(NAME, MY_UUID);
-        } catch (IOException e) { }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         mServerSocket = tmp;
     }
 
@@ -42,6 +44,7 @@ public class AcceptThread extends Thread {
             try {
                 socket = mServerSocket.accept();
             } catch (IOException e) {
+                e.printStackTrace();
                 break;
             }
             // If a connection was accepted
