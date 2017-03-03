@@ -10,10 +10,10 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="com.tonydantona.nomad.MainActivity">
 
-    <!--<com.esri.arcgisruntime.mapping.view.MapView-->
-        <!--android:id="@+id/mapView"-->
-        <!--android:layout_width="fill_parent"-->
-        <!--android:layout_height="fill_parent" >-->
-    <!--</com.esri.arcgisruntime.mapping.view.MapView>-->
+    <com.esri.arcgisruntime.mapping.view.MapView
+        android:id="@+id/mapView"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent" >
+    </com.esri.arcgisruntime.mapping.view.MapView>
 
 </RelativeLayout>

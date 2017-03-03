@@ -1,10 +1,28 @@
-<resources xmlns:xliff="http://schemas.android.com/tools">
+<resources>
     <string name="app_name">Nomad</string>
     <string name="main_menu">Main_menu</string>
-
+    <string name="location_permission_denied">Open Mobile Map Package could not open because WRITE permission was denied.</string>
     <string name="send">Send</string>
     <string name="not_connected">You are not connected to a device</string>
     <string name="title_connecting">connecting…</string>
     <string name="title_connected_to">connected to</string>
     <string name="title_not_connected">not connected</string>
+
+    <string name="navigation_url">http://www.arcgis.com/home/item.html?id=00cd8e843bae49b3a040423e5d65416b</string>
+    <string name="streets_url">http://www.arcgis.com/home/item.html?id=3b8814f6ddbd485cae67e8018992246e</string>
+    <string name="night_url">http://www.arcgis.com/home/item.html?id=f96366254a564adda1dc468b447ed956</string>
+    <string name="dark_gray_url">http://www.arcgis.com/home/item.html?id=3e3099d7302f4d99bc6f916dcc07ed59</string>
+
+    <string-array name="vector_tiled_types">
+        <item>World Navigation</item>
+        <item>World Street</item>
+        <item>World Street Night</item>
+        <item>Dark Gray Canvas</item>
+    </string-array>
+
+    <!-- Navigation vectore URL-->
+    <string name="navigation_vector">http://www.arcgis.com/sharing/rest/content/items/dcbbba0edf094eaa81af19298b9c6247/resources/styles/root.json</string>
+    <string name="routing_service">http://sampleserver6.arcgisonline.com/arcgis/rest/services/NetworkAnalysis/SanDiego/NAServer/Route</string>
+
+    <string name="vector_tiled_layer">%1$s</string>
 </resources>

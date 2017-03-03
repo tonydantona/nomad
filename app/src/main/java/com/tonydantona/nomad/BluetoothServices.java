@@ -120,7 +120,7 @@ public class BluetoothServices {
                     try {
                         dest = destinationParser.parseDestination(readMessage);
                     } catch (XmlPullParserException e) {
-                        e.printStackTrace();
+                        Log.d(TAG, e.toString());
                     }
                     mDestinationListener.bluetoothServiceOnDestinationChange(dest);
                     break;

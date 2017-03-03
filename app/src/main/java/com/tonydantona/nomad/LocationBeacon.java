@@ -101,7 +101,7 @@ public class LocationBeacon implements com.google.android.gms.location.LocationL
             return;
         }
 
-        mLocationListener.LocationBeaconOnConnected(bundle, currentLocation);
+        mLocationListener.onLocationBeaconConnected(bundle, currentLocation);
 
         if (mRequestingLocationUpdates) {
             startLocationUpdates();
@@ -110,17 +110,17 @@ public class LocationBeacon implements com.google.android.gms.location.LocationL
 
     @Override
     public void onLocationChanged(Location location) {
-        mLocationListener.LocationBeaconOnLocationChange(location);
+        mLocationListener.onLocationBeaconLocationChange(location);
     }
 
     @Override
     public void onConnectionSuspended(int cause) {
-        mLocationListener.LocationBeaconOnConnectionSuspended(cause);
+        mLocationListener.onLocationBeaconConnectionSuspended(cause);
     }
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-        mLocationListener.LocationBeaconOnConnectionFailed(connectionResult);
+        mLocationListener.onLocationBeaconConnectionFailed(connectionResult);
     }
 
     public void onStopFromCaller() {
@@ -132,9 +132,9 @@ public class LocationBeacon implements com.google.android.gms.location.LocationL
 
 
     public interface ILocationServices {
-        void LocationBeaconOnLocationChange(Location location);
-        void LocationBeaconOnConnected(Bundle extras, Location currentLocation);
-        void LocationBeaconOnConnectionSuspended(int cause);
-        void LocationBeaconOnConnectionFailed(ConnectionResult connectionResult);
+        void onLocationBeaconLocationChange(Location location);
+        void onLocationBeaconConnected(Bundle extras, Location currentLocation);
+        void onLocationBeaconConnectionSuspended(int cause);
+        void onLocationBeaconConnectionFailed(ConnectionResult connectionResult);
     }
 }

@@ -32,7 +32,7 @@ public class AcceptThread extends Thread {
             // MY_UUID is the app's UUID string, also used by the client code
             tmp = mBluetoothAdapter.listenUsingRfcommWithServiceRecord(NAME, MY_UUID);
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.d(TAG, "AcceptThread ctor failed: " + e.getMessage());
         }
         mServerSocket = tmp;
     }
@@ -44,7 +44,7 @@ public class AcceptThread extends Thread {
             try {
                 socket = mServerSocket.accept();
             } catch (IOException e) {
-                e.printStackTrace();
+                Log.d(TAG, "run failed: " + e.getMessage());
                 break;
             }
             // If a connection was accepted
@@ -76,8 +76,7 @@ public class AcceptThread extends Thread {
             mServerSocket.close();
             Log.d(TAG, "close: " + mServerSocket.toString() + " closed");
         } catch (IOException e) {
-            e.printStackTrace();
-            Log.d(TAG, "BluetoothSocket close error" + "/n" + e.toString());
+            Log.d(TAG, "BluetoothSocket close error" + "/n" + e.getMessage());
         }
     }
 
@@ -87,8 +86,7 @@ public class AcceptThread extends Thread {
             mServerSocket.close();
             Log.d(TAG, "cancel: " + mServerSocket.toString() + " cancelled");
         } catch (IOException e) {
-            e.printStackTrace();
-            Log.d(TAG, "BluetoothSocket cancel error" + "/n" + e.toString());
+            Log.d(TAG, "BluetoothSocket cancel error" + "/n" + e.getMessage());
         }
     }
 }

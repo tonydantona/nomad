@@ -1,52 +1,64 @@
 package com.tonydantona.nomad;
 
-import android.app.FragmentManager;
-import android.location.Location;
+import android.graphics.Color;
 import android.os.Bundle;
-import android.os.Environment;
-import android.os.Handler;
-import android.os.Message;
-import android.support.v4.app.FragmentActivity;
-import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
-import android.widget.TextView;
+import android.util.Log;
 import android.widget.Toast;
 
+import com.esri.arcgisruntime.concurrent.ListenableFuture;
+import com.esri.arcgisruntime.geometry.Point;
+import com.esri.arcgisruntime.geometry.SpatialReference;
+import com.esri.arcgisruntime.geometry.SpatialReferences;
+import com.esri.arcgisruntime.layers.ArcGISVectorTiledLayer;
 import com.esri.arcgisruntime.mapping.ArcGISMap;
 import com.esri.arcgisruntime.mapping.Basemap;
+import com.esri.arcgisruntime.mapping.Viewpoint;
+import com.esri.arcgisruntime.mapping.view.Graphic;
+import com.esri.arcgisruntime.mapping.view.GraphicsOverlay;
+import com.esri.arcgisruntime.mapping.view.LocationDisplay;
 import com.esri.arcgisruntime.mapping.view.MapView;
-import com.google.android.gms.common.ConnectionResult;
+import com.esri.arcgisruntime.symbology.SimpleLineSymbol;
+import com.esri.arcgisruntime.tasks.networkanalysis.Route;
+import com.esri.arcgisruntime.tasks.networkanalysis.RouteParameters;
+import com.esri.arcgisruntime.tasks.networkanalysis.RouteResult;
+import com.esri.arcgisruntime.tasks.networkanalysis.RouteTask;
+import com.esri.arcgisruntime.tasks.networkanalysis.Stop;
 
-import org.xmlpull.v1.XmlPullParserException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
 
-public class MainActivity extends AppCompatActivity implements LocationBeacon.ILocationServices, BluetoothServices.IDestinationServices {
+import static com.tonydantona.nomad.R.id.mapView;
 
-    private LocationBeacon mLocationBeacon;
-    private Location mCurrentLocation;
-    private Destination mDestination;
+public class MainActivity extends AppCompatActivity implements BluetoothServices.IDestinationServices, MobileMapPackageServices.IMmpkCallbacks {
+
+    private static final String TAG = "MainActivity";
+    // Spatial references used for projecting points
+    public static final SpatialReference mWmSpatialReference = SpatialReference.create(102100);
+    public static final SpatialReference mEgsSpatialReference = SpatialReference.create(4326);
 
     private BluetoothServices mBluetoothServices;
+    private MobileMapPackageServices mMmpkServices;
 
-    private TextView mLatitudeText;
-    private TextView mLongitudeText;
+    private LocationDisplay mLocationDisplay;
+    private Destination mDestination;
+
+    private List<Stop> mStops;
+    RouteParameters mRouteParameters = null;
 
     private MapView mMapView;
+    private GraphicsOverlay mGraphicsOverlay;
 
-    private Handler mHandler = new Handler();
+    private RouteTask mRouteTask;
+
+    private ArcGISVectorTiledLayer mVectorTiledLayer;
+
     final Runnable mUpdateResults = new Runnable() {
         public void run() {
             updateUI();
         }
     };
-
-    // test message
-    String message =   "<?xml version='1.0' encoding='utf-8'?>" +
-            "<Message>" +
-            "<Consignee>KATHLEEN MCMULLEN</Consignee>" +
-            "<NapLat>39.64993</NapLat>" +
-            "<NapLong>-76.703443</NapLong>" +
-            "<HIN>19206</HIN>" +
-            "</Message>";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,87 +67,190 @@ public class MainActivity extends AppCompatActivity implements LocationBeacon.IL
 
         setContentView(R.layout.activity_main);
 
-//        mLatitudeText = (TextView) findViewById(R.id.latView);
-//        mLongitudeText = (TextView) findViewById(R.id.lonView);
-
-//        XMLDestinationParser destinationParser = new XMLDestinationParser();
-//        try {
-//            destinationParser.parseDestination(message);
-//        } catch (XmlPullParserException e) {
-//            e.printStackTrace();
-//        }
-
-        initializeLocationBeacon();
-
         mBluetoothServices = new BluetoothServices(this);
         mBluetoothServices.start();
 
-//        if (savedInstanceState == null) {
-//            FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-//            BluetoothServiceFragment fragment = new BluetoothServiceFragment(this);
-//            transaction.replace(R.id.activity_main, fragment);
-//            transaction.commit();
-//
-//
-//        }
+        // retrieve the MapView from layout
+        mMapView = (MapView) findViewById(mapView);
 
-//        mMapView = (MapView) findViewById(R.id.mapView);
-//        ArcGISMap mMap = new ArcGISMap(Basemap.Type.TOPOGRAPHIC, 34.056295, -117.195800, 16);
-//        mMapView.setMap(mMap);
+        /* testing portal */
+
+        ArcGISVectorTiledLayer mVectorTiledLayer = new ArcGISVectorTiledLayer(getResources().getString(R.string.navigation_vector));
+
+        // set tiled layer as basemap
+        Basemap basemap = new Basemap(mVectorTiledLayer);
+        // create a map with the basemap
+        ArcGISMap mMap = new ArcGISMap(basemap);
+        // create a viewpoint from lat, long, scale
+//        Viewpoint huntValleyPoint = new Viewpoint(39.4988544, -76.6570629, 100000);
+//        // set initial map extent
+//        mMap.setInitialViewpoint(huntValleyPoint);
+        // set the map to be displayed in this view
+
+        Viewpoint sanDiegoPoint = new Viewpoint(32.7157, -117.1611, 200000);
+        // set initial map extent
+        mMap.setInitialViewpoint(sanDiegoPoint);
+        mMapView.setMap(mMap);
+        /* end testing portal */
+
+        mGraphicsOverlay = new GraphicsOverlay();
+
+        //add the overlay to the map view
+        mMapView.getGraphicsOverlays().add(mGraphicsOverlay);
+
+        // load the map
+//        mMmpkServices = new MobileMapPackageServices(this);
+//        mMmpkServices.loadMapFromMobileMapPackage();
+
+//        setupLocationDisplay();
+        setupRouteTask();
     }
 
-    private void initializeLocationBeacon() {
-        mLocationBeacon = new LocationBeacon(this);
+    private void routeStops() {
+        mRouteParameters.getStops().addAll(mStops);
+
+        final ListenableFuture<RouteResult> routeResultFuture = mRouteTask.solveRouteAsync(mRouteParameters);
+
+        mRouteTask.addDoneLoadingListener(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    RouteResult routeResult = routeResultFuture.get();
+                    // process result
+                    Route route = routeResult.getRoutes().get(0);
+
+                    int routeSymbolSize = 10;
+                    SimpleLineSymbol routeSymbol = new SimpleLineSymbol(SimpleLineSymbol.Style.DASH_DOT, Color.YELLOW, routeSymbolSize);
+                    Graphic routeGraphic = new Graphic(route.getRouteGeometry(), routeSymbol);
+                    mGraphicsOverlay.getGraphics().add(routeGraphic);
+                }
+                catch (Throwable e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
+    private void processResults() {
+
+    }
+
+    private void loadStops() {
+        mStops = new ArrayList<Stop>();
+//        mStops.add(getDepot());
+//        mStops.add(new Stop(new Point(-76.6570629,39.4988544)));
+
+        mStops.add(new Stop(new Point(-117.15083257944445, 32.741123367963446, SpatialReferences.getWgs84())));
+        mStops.add(new Stop(new Point(-117.15557279683529, 32.703360305883045, SpatialReferences.getWgs84())));
+    }
+
+    private Stop getDepot() {
+        Point p = new Point(-76.6570629, 39.4988544);
+        return new Stop(p);
+    }
+
+    private void setupRouteTask() {
+//        mRouteTask = new RouteTask(this, mMmpkServices.getTransportationNetwork());
+        mRouteTask = new RouteTask("http://sampleserver6.arcgisonline.com/arcgis/rest/services/NetworkAnalysis/SanDiego/NAServer/Route");
+
+        mRouteTask.loadAsync();
+        mRouteTask.addDoneLoadingListener(new Runnable() {
+            @Override
+            public void run() {
+                mRouteTask.getLoadError();
+                mRouteTask.getLoadStatus();
+            }
+        });
+
+        final ListenableFuture<RouteParameters> routeParametersFuture = mRouteTask.createDefaultParametersAsync();
+
+        // in a non-UI thread, get the route parameters
+        routeParametersFuture.addDoneListener(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    mRouteParameters = routeParametersFuture.get();
+
+                    // update properties of route parameters
+                    mRouteParameters.setReturnDirections(true);
+                    mRouteParameters.setReturnRoutes(true);
+                    mRouteParameters.setOutputSpatialReference(mMapView.getSpatialReference());
+
+                    loadStops();
+                    routeStops();
+                }
+                catch (InterruptedException e) {
+                    e.printStackTrace();
+                    Log.e(TAG, e.getMessage());
+                } catch (ExecutionException e) {
+                    e.printStackTrace();
+                    Log.e(TAG, e.getMessage());
+                }
+            }
+        });
+    }
+
+    private void setupLocationDisplay() {
+        // get the MapView's LocationDisplay
+        mLocationDisplay = mMapView.getLocationDisplay();
+
+        mLocationDisplay.addDataSourceStatusChangedListener(new LocationDisplay.DataSourceStatusChangedListener() {
+            @Override
+            public void onStatusChanged(LocationDisplay.DataSourceStatusChangedEvent dataSourceStatusChangedEvent) {
+                if (dataSourceStatusChangedEvent.getSource().getLocationDataSource().getError() == null) {
+                    Log.e(TAG, "Location Display Started=" + dataSourceStatusChangedEvent.isStarted());
+                } else {
+                    // Deal with problems starting the LocationDisplay...
+                }
+            }
+        });
+        mLocationDisplay.startAsync();
+
+        mLocationDisplay.addLocationChangedListener(new LocationDisplay.LocationChangedListener() {
+            @Override
+            public void onLocationChanged(LocationDisplay.LocationChangedEvent locationChangedEvent) {
+
+            }
+
+        });
     }
 
     private void updateUI() {
-//        mLatitudeText.setText(String.valueOf(mCurrentLocation.getLatitude()));
-//        mLongitudeText.setText(String.valueOf(mCurrentLocation.getLongitude()));
+
     }
 
     @Override
     protected void onPause(){
-//        mMapView.pause();
         super.onPause();
+        mMapView.pause();
     }
 
     @Override
     protected void onResume(){
         super.onResume();
-//        mMapView.resume();
+        mMapView.resume();
+
+        if (mBluetoothServices != null) {
+            // Only if the state is STATE_NONE, do we know that we haven't started already
+            if (mBluetoothServices.getState() == Immutables.STATE_NONE) {
+                // Start the Bluetooth chat services
+                mBluetoothServices.start();
+            }
+        }
     }
 
     @Override
-    // this callback is on the main thread
-    public void LocationBeaconOnConnected(Bundle extras, Location location) {
-        mCurrentLocation = new Location(location);
-        updateUI();
+    protected void onDestroy() {
+        super.onDestroy();
+        if (mBluetoothServices != null) {
+            mBluetoothServices.stop();
+        }
     }
 
-    @Override
-    // this callback is on a separate thread
-    public void LocationBeaconOnLocationChange(Location location) {
-        mCurrentLocation.setLatitude(location.getLatitude());
-        mCurrentLocation.setLongitude(location.getLongitude());
-
-        mHandler.post(mUpdateResults);
-    }
-
-    @Override
-    public void LocationBeaconOnConnectionSuspended(int cause) {
-
-    }
-
-    @Override
-    public void LocationBeaconOnConnectionFailed(ConnectionResult connectionResult) {
-
-    }
 
     @Override
     protected void onStop() {
         super.onStop();
-        mHandler = null;
-        mLocationBeacon.onStopFromCaller();
     }
 
     @Override
@@ -144,4 +259,14 @@ public class MainActivity extends AppCompatActivity implements LocationBeacon.IL
         Toast.makeText(this, "lat: " + mDestination.getNapLat() + " lon: " + mDestination.getNapLon(), Toast.LENGTH_LONG).show();
     }
 
+    @Override
+    public void onMmpkDoneLoading(ArcGISMap map) {
+        Viewpoint huntValleyPoint = new Viewpoint(39.4988544, -76.6570629, 20000);
+        // set initial map extent
+        map.setInitialViewpoint(huntValleyPoint);
+        mMapView.setMap(map);
+
+        setupLocationDisplay();
+        setupRouteTask();
+    }
 }
